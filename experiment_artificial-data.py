@@ -6,6 +6,7 @@ from sklearn.datasets import make_multilabel_classification
 from sklearn import svm
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
 def convertFeatureToInteger(table,col_index):
     type_list = []
@@ -21,17 +22,7 @@ def convertFeatureToInteger(table,col_index):
 def most_common(lst):
     return max(set(lst), key=lst.count)
 
-
-if __name__ == '__main__':
-
-#   Generating artificial data.
-    #n_labels*3<=n_classes
-    
-
-    n_samples = 2407
-    n_classes=20
-    n_labels=6
-    '''
+def generateData(n_samples,n_classes,n_labels):
     X, Y = make_multilabel_classification(n_samples,n_classes, n_labels,
                                           allow_unlabeled=True,
                                           return_indicator=True,
@@ -44,7 +35,18 @@ if __name__ == '__main__':
     
     np.savetxt('datasets/af-multilabel/X.data', X,fmt='%1.4e') 
     np.savetxt('datasets/af-multilabel/Y.data', Y,fmt='%1.4e')
-    '''
+
+if __name__ == '__main__':
+
+    #Generating artificial data.
+    #n_labels*3<=n_classes
+    n_samples = 2417
+    n_classes=103
+    n_labels=14
+
+    generateData(n_samples,n_classes,n_labels);
+
+    #Loading Data    
     X = np.loadtxt('datasets/af-multilabel/X.data')    
     Y = np.loadtxt('datasets/af-multilabel/Y.data')
 
@@ -53,7 +55,7 @@ if __name__ == '__main__':
 
     X_test  = X[n_samples/2 : n_samples]
     Y_test  = Y[n_samples/2 : n_samples]
-    #H       = np.zeros((len(X_test),n_labels))
+   
 
     #print X
     #print Y
@@ -69,23 +71,14 @@ if __name__ == '__main__':
     #print y_train
 
 
-    clf = OneVsRestClassifier(SVC(kernel='linear',probability=True))
+    #clf = OneVsRestClassifier(SVC(kernel='linear'))
     #clf = svm.SVC(kernel='poly', gamma=10)
+    clf  = AdaBoostClassifier()
     clf.fit(X_train, y_train)
     
     
     #Getting the predicted answer
-    H_table = clf.predict_proba(X_test)
-    print H_table
-    print len(H_table)
-'''
-    H = np.zeros(len(H_table))
-    for i in range(len(H_table)):
-        if H_table[i][0] > H_table[i][1]:
-            H[i] = 0
-        else :
-            H[i] = 1
-    
+    H = clf.predict(X_test)
 
     #Calculating error
     error=0;
@@ -93,8 +86,8 @@ if __name__ == '__main__':
         if  H[i] != y_test[i] :
             error+=1
     
-    print H
-    print y_test  
+    #print H
+    #print y_test  
     print '==== ==== Discard all except 1st feature'    
     print 'error = ',error / (len(X_test)*1.000)
     #Result ~= 0.2
@@ -102,6 +95,7 @@ if __name__ == '__main__':
 
 
 #   Binary Relavance
+    H       = np.zeros((len(X_test),n_labels))
 
     #Training N=n_labels model
     for feature in range (n_labels):
@@ -113,29 +107,19 @@ if __name__ == '__main__':
         #print y_train
         #print H
         
-        clf = OneVsRestClassifier(SVC(kernel='linear',probability=True))
+        #clf = OneVsRestClassifier(SVC(kernel='linear'))
         #clf = svm.SVC(kernel='poly', gamma=10)
+        clf  = AdaBoostClassifier()
         clf.fit(X_train, y_train)
         
 
         #Getting the predicted answer
-        H = np.zeros((len(X_test),n_labels))
-        H_table = clf.predict_proba(X_test)
-        print 'Feature  ',feature,' : \n',H_table
-        for i in range(len(H_table)):
-            if H_table[i][0] > H_table[i][1]:
-                H[i,feature] = 0
-            else :
-                H[i,feature] = 1
+        H[:,feature] = clf.predict(X_test)
 
-        
-        
-        
-
-      
+    #print H
+    #print Y_test
 
     #Calculating Diff
-    
     print '==== ==== BR'  
     error=0
     featrue_error=0;
@@ -145,12 +129,14 @@ if __name__ == '__main__':
             if H[i,j]!=Y_test[i,j]:
                 error+=1
                 feature_error+=1;
-        #print 'feature_error = ',feature_error / (len(X_test)*1.000)
+        print 'feature_error = ',feature_error / (len(X_test)*1.000)
       
- 
+    print 
     print '0/1 diff = ',error 
     print '0/1 loss = ', error / ((len(X_test)*1.000)*n_labels)
-    
+
+
+'''    
 #   RAKel
 
 
