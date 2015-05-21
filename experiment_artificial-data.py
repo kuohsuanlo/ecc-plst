@@ -9,6 +9,9 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
+from itertools import chain, combinations
+
+
 def convertFeatureToInteger(table,col_index):
     type_list = []
     for row in table:
@@ -37,9 +40,22 @@ def generateData(n_samples,n_classes,n_labels):
     np.savetxt('datasets/af-multilabel/X.data', X,fmt='%1.4e') 
     np.savetxt('datasets/af-multilabel/Y.data', Y,fmt='%1.4e')
 
+def generatePowerset(labelTuples):
+    R = []
+    for labelTuple in labelTuples:
+        i = set(labelTuple)
+        A=[]        
+        for z in chain.from_iterable(combinations(i, r) for r in range(len(i)+1)):              
+            z = np.array(z)
+            zeros = (np.zeros((1,3-len(z))))[0]-1  
+            newrow =np.concatenate((z,zeros),axis=0)
+            A.append(newrow)       
+        R.append( A)
+    return np.array(R).astype(int)
+
+
 def firstFeature(X,Y):
-#   First try. Focus on the first feature
-    
+    print '==== ==== 1st feature'   
     X_train = X[0:n_samples/2]
     Y_train = Y[0:n_samples/2]
 
@@ -71,13 +87,12 @@ def firstFeature(X,Y):
     
     #print H
     #print y_test  
-    print '==== ==== 1st feature'    
+ 
     print 'error = ',error / (len(X_test)*1.000)
     #Result ~= 0.2
 def binaryRelavance(X,Y):
-
+    print '==== ==== BR'  
     #Initialize data
-
     X_train = X[0:n_samples/2]
     Y_train = Y[0:n_samples/2]
 
@@ -108,7 +123,7 @@ def binaryRelavance(X,Y):
     #print Y_test
 
     #Calculating Diff
-    print '==== ==== BR'  
+
     error=0
     featrue_error=0;
     for j in range(n_labels) :
@@ -117,25 +132,33 @@ def binaryRelavance(X,Y):
             if H[i,j]!=Y_test[i,j]:
                 error+=1
                 feature_error+=1;
-        print 'feature_error = ',feature_error / (len(X_test)*1.000)
+        #print 'feature_error = ',feature_error / (len(X_test)*1.000)
       
     #print '0/1 diff = ',error 
     print '0/1 loss = ', error / ((len(X_test)*1.000)*n_labels)
 
 
 def rakel(X,Y):
-    n_labeltuples = 15
+    print '==== ==== Rakel'  
+    n_labeltuples = 7
     n_labelk = 3
 
-    #Initial tuple's elements to (-1,-1...,-1)
-    labelTuples = np.zeros((n_labeltuples,n_labelk))
-    labelTuples= labelTuples-1
-    #print labelTuples
+    #Initialize data
 
+    X_train = X[0:n_samples/2]
+    Y_train = Y[0:n_samples/2]
+
+    X_test  = X[n_samples/2 : n_samples]
+    Y_test  = Y[n_samples/2 : n_samples]
+
+
+
+    #Initialize the tuples' elements to (-1,-1...,-1)
+    labelTuples = np.zeros((n_labeltuples,n_labelk))
+    labelTuples = labelTuples-1
 
     #Construct n_labeltuples subset , each containing n_labelk elements
     for i in range(n_labeltuples):
-        #print i
         j=0    
         while True:
             new_id = random.choice(range(n_labels)) #0~n_labels-1
@@ -144,23 +167,26 @@ def rakel(X,Y):
                 j+=1
             if j is 3:
                 break
-    #print labelTuples
 
 
+    #Generating C(n_labelk, n_labels)'s powerset R = in binary form,  -1= ith feature ==0, >=0 = ith feature ==1  
+    R =  generatePowerset(labelTuples)
+    print R
 
-    #For each tuple, do a powerset algorithms with BR
+    #For each tuple, do the powerset algorithms with base learner
 
-
+         
+            
 
 if __name__ == '__main__':
 
     #Generating artificial data.
     #n_labels*3<=n_classes
-    n_samples = 2417
-    n_classes=103
-    n_labels=14
+    n_samples = 1400
+    n_classes=10
+    n_labels=10
 
-    #generateData(n_samples,n_classes,n_labels);
+    generateData(n_samples,n_classes,n_labels);
     
     #Loading Data    
     X = np.loadtxt('datasets/af-multilabel/X.data')    
@@ -180,11 +206,11 @@ if __name__ == '__main__':
 
 
 #   First try. Focus on the first feature
-    #firstFeature(X,Y)
+    firstFeature(X,Y)
 
 
 #   Binary Relavance
-    #binaryRelavance(X,Y)
+    binaryRelavance(X,Y)
 
 
 #   RAKel
