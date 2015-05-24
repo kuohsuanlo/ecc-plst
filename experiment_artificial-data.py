@@ -3,6 +3,8 @@ import matplotlib.pyplot as plt
 import pprint
 import random
 
+from operator import mul    # or mul=lambda x,y:x*y
+from fractions import Fraction
 
 from sklearn.preprocessing import MultiLabelBinarizer
 from sklearn import datasets
@@ -71,6 +73,11 @@ def bin(i, n_labelk):
         i >>= 1
     s+= "0"*(n_labelk-len(s))
     return s
+
+
+
+def nCk(n,k): 
+    return int( reduce(mul, (Fraction(n-i, i+1) for i in range(k)), 1) )
 
 def firstFeature(X,Y):
     print '==== ==== 1st feature'   
@@ -160,9 +167,8 @@ def binaryRelavance(X,Y):
 
 def rakel(X,Y):
     print '==== ==== Rakel'  
-    n_labeltuples = 50
-    n_labelk = 4
-
+    n_labelk = 3
+    n_labeltuples = nCk(n_labels,n_labelk)  #C(n_labels n_labelk)
     #Initialize data
 
     X_train = X[0:n_samples/2]
