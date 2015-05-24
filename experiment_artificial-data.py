@@ -40,18 +40,19 @@ def generateData(n_samples,n_classes,n_labels):
     np.savetxt('datasets/af-multilabel/X.data', X,fmt='%1.4e') 
     np.savetxt('datasets/af-multilabel/Y.data', Y,fmt='%1.4e')
 
-def generatePowerset(labelTuples):
-    R = []
-    for labelTuple in labelTuples:
-        i = set(labelTuple)
-        A=[]        
-        for z in chain.from_iterable(combinations(i, r) for r in range(len(i)+1)):              
-            z = np.array(z)
-            zeros = (np.zeros((1,3-len(z))))[0]-1  
-            newrow =np.concatenate((z,zeros),axis=0)
-            A.append(newrow)       
-        R.append( A)
-    return np.array(R).astype(int)
+def generatePowerset(labelTuple):
+    #R = []
+    #for labelTuple in labelTuples:
+    i = set(labelTuple)
+    A=[]        
+    for z in chain.from_iterable(combinations(i, r) for r in range(len(i)+1)):              
+        z = np.array(z)
+        zeros = (np.zeros((1,3-len(z))))[0]-1  
+        newrow =np.concatenate((z,zeros),axis=0)
+        newrow = sorted(newrow)
+        A.append(newrow)       
+       #R.append( A)
+    return np.array(A).astype(int)
 
 
 def firstFeature(X,Y):
@@ -165,14 +166,40 @@ def rakel(X,Y):
             if new_id not in labelTuples[i]:
                 labelTuples[i][j]=(new_id)
                 j+=1
-            if j is 3:
+            if j is n_labelk:
                 break
 
 
     #Generating C(n_labelk, n_labels)'s powerset R = in binary form,  -1= ith feature ==0, >=0 = ith feature ==1  
-    R =  generatePowerset(labelTuples)
-    print R
+    Y_t= []
+    for labelTuple in labelTuples:
+        labelTuple = sorted(labelTuple)
+        R = generatePowerset(labelTuple)
+        Y_t_r = []
+        for subset in R:
+            tmp = labelTuple[:]
+            for i,label in enumerate(labelTuple) :
+                if label in subset:
+                    tmp[i] = tuple([label, 1])
+                else:
+                    tmp[i] = tuple([label,-1])
+            subset = tmp
+            Y_t_r.append( subset)
+        Y_t.append(Y_t_r)
 
+    Y_t = np.array(Y_t).astype(int)
+    print Y_t
+
+'''
+    for i,subsets in enumerate(R) :
+        for j,subset in enumerate(subsets):
+            j = labelTuples[0]
+            for k,label in enumerate(subset):
+                print k
+    '''
+    
+         
+    #print R
     #For each tuple, do the powerset algorithms with base learner
 
          
