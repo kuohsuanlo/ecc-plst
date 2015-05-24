@@ -44,20 +44,33 @@ def generateData(n_samples,n_classes,n_labels):
     np.savetxt('datasets/af-multilabel/X.data', X,fmt='%d') 
     np.savetxt('datasets/af-multilabel/Y.data', Y,fmt='%d')
 
-def generatePowerset(labelTuple):
+def generatePowerset(labelTuple,n_labelk):
     #R = []
     #for labelTuple in labelTuples:
     i = set(labelTuple)
     A=[]        
     for z in chain.from_iterable(combinations(i, r) for r in range(len(i)+1)):              
         z = np.array(z)
-        zeros = (np.zeros((1,3-len(z))))[0]-1  
+        zeros = (np.zeros((1,n_labelk-len(z))))[0]-1  
         newrow =np.concatenate((z,zeros),axis=0)
         newrow = sorted(newrow)
         A.append(newrow)       
        #R.append( A)
     return np.array(A).astype(int)
 
+#In reversed order, for example 8 = 0001
+def bin(i, n_labelk):
+    if i == 0:
+        return "0"*n_labelk
+    s = ''
+    while i:
+        if i & 1 == 1:
+            s = s+"1" 
+        if i & 1 != 1:
+            s = s+"0" 
+        i >>= 1
+    s+= "0"*(n_labelk-len(s))
+    return s
 
 def firstFeature(X,Y):
     print '==== ==== 1st feature'   
@@ -77,7 +90,7 @@ def firstFeature(X,Y):
 
     #clf = OneVsRestClassifier(SVC(kernel='linear'))
     #clf = svm.SVC(kernel='poly', gamma=10)
-    clf  = AdaBoostClassifier()
+    clf  =  OneVsOneClassifier(LinearSVC(random_state=0))
     clf.fit(X_train, y_train)
     
     
@@ -109,6 +122,7 @@ def binaryRelavance(X,Y):
     #Training N=n_labels model
     for feature in range (n_labels):
         #print feature
+        print 'BinaryRalevance Training : ',feature,'/',(n_labels)
         y_train = Y_train[:,feature]
         y_test  = Y_test[:,feature]
 
@@ -118,7 +132,8 @@ def binaryRelavance(X,Y):
         
          
         #clf = OneVsRestClassifier(LinearSVC(random_state=0))
-        clf  = AdaBoostClassifier()
+        clf  = OneVsOneClassifier(LinearSVC(random_state=0))
+        #clf  = AdaBoostClassifier()
         clf.fit(X_train, y_train)
         
         #Getting the predicted answer
@@ -145,8 +160,8 @@ def binaryRelavance(X,Y):
 
 def rakel(X,Y):
     print '==== ==== Rakel'  
-    n_labeltuples = 15
-    n_labelk = 3
+    n_labeltuples = 50
+    n_labelk = 6
 
     #Initialize data
 
@@ -172,11 +187,12 @@ def rakel(X,Y):
                 break
 
 
-    #Generating C(n_labelk, n_labels)'s powerset R = in binary form,  -1= ith feature ==0, >=0 = ith feature ==1  
+    #Generating sorted k features tuples from C(n_labelk, n_labels)'s powerset R = in binary form,  -1= ith feature ==0, >=0 = ith feature ==1  
     Y_t= []  # Y labelspace truth table
     for labelTuple in labelTuples:
         labelTuple = sorted(labelTuple)
-        R = generatePowerset(labelTuple)
+        #print labelTuple
+        R = generatePowerset(labelTuple,n_labelk)
         Y_t_r = []
         for subset in R:
             tmp = labelTuple[:]
@@ -188,20 +204,23 @@ def rakel(X,Y):
             subset = tmp
             Y_t_r.append( subset)
         Y_t.append(Y_t_r)
-
     Y_t = np.array(Y_t).astype(int) 
     
-    
     #Genarate transformed Y based on  Y_t table
-    ted_YN=[]
-    for hi,sets in enumerate(Y_t):
-        print 'sets: ',sorted(labelTuples[hi])
-        
+    box = np.zeros((len(X_test),n_labels))
+    for hi,sets in enumerate(Y_t): # loop n_labeltuples times
+        stuple = sorted(labelTuples[hi])
+        #print 'In k label sets :',stuple
+        print 'Rakel labelPSet Training : ',hi,'/',len(Y_t)
+        ted_YN=[]
+        bted_YN=[]
         transformedY = []
         binarytransformedY = []
-        for i,row in enumerate(Y):
+        for row in Y:
             trandsfomedY_row =[]
-            for j,iset in enumerate(sets):
+            for iset in sets:
+                #print iset
+                #print '--------'
                 n_match =0
                 for i in iset:
                     if i[1]== 1  and  row[i[0]]== 1:
@@ -225,43 +244,85 @@ def rakel(X,Y):
         
         #Generate tranformed Y_0~ Y_labeltuples based on Y_t table
         filename = 'datasets/af-multilabel/processed/Y_'+repr( hi)+'.data'
-        bfilename= 'datasets/af-multilabel/processed/Y_'+repr( hi)+'_binary.data'
         np.savetxt(filename, transformedY,fmt='%d')
-        np.savetxt(bfilename, binarytransformedY,fmt='%d')
-        transformedY = np.loadtxt(filename)
-        ted_YN.append(transformedY)
-    
+        ted_Y = np.loadtxt(filename)
+        
+        #Generate tranformed Y_0~ Y_labeltuples in binaryform
 
-        #Begin the train-test-election
-        for ted_Y in ted_YN:
-            ted_Y = ted_Y
-            #print ted_Y
-            Y_train = ted_Y[0:n_samples/2]
-            Y_test  = ted_Y[n_samples/2 : n_samples]
+        #print ted_Y
+        Y_train = ted_Y[0:n_samples/2]
+        Y_test  = ted_Y[n_samples/2 : n_samples]
+        
+        clf  = OneVsOneClassifier(LinearSVC(random_state=0))
+        clf.fit(X_train, Y_train)
+        
+        #Getting the predicted answer
+        H= clf.predict(X_test)
+        
+        
+        #Transform back to binary and put it in the election box
+        for i_test,i in enumerate(H.astype(int)):
+            s=bin(i, n_labelk)
+            for i_ind,indicator in enumerate(s):
+                if indicator =='1' :
+                    #Voting
+                    box[i_test,stuple[i_ind]]+=1
+
+
+
+     
+            ##########################
+            #TIME TO SLEEP
+            #Compare the error with all 0 
+        '''
+            error=0;
+            for i in range(len(Y_test)):
+                if  H[i] != Y_test[i] :
+                    error+=1
+            print 'loss = ', error / ((len(X_test)*1.000))
             
-            clf  = OneVsOneClassifier(LinearSVC(random_state=0))
-            clf.fit(X_train, Y_train)
             
-            #Getting the predicted answer
-            H= clf.predict(X_test)
-            print '---'
-            print H
+            randError=0
+            RandomH = H[:]
+            for i in range(len(Y_test)):
+                RandomH[i] = 0
+                #RandomH[i] = random.choice(range(2**n_labelk))
+            for i in range(len(Y_test)):
+                if  RandomH[i] != Y_test[i] :
+                    randError+=1
+            print 'rloss= ', randError / ((len(X_test)*1.000))
+        '''
             
-            print Y_test
+            
+            ##########################
+            
+            #print H
+            
+            
+
+    #Open the election box
+    electedH=[]
+    for vote in box:
+        v = vote.tolist()
+        electedH.append(v.index(max(v)))
+    #print electedH
+            
             
     #Calculating Diff
-    
-   
-         
-            
+    error=0;
+    for i in range(len(Y_test)):
+        if  electedH[i] != Y_test[i] :
+            error+=1
+    print '0/1 loss = ', error / ((len(X_test)*1.000))       
+     
 
 if __name__ == '__main__':
 
     #Generating artificial data.
     #n_labels*3<=n_classes
-    n_samples = 4
-    n_classes=10
-    n_labels=10
+    n_samples = 15000
+    n_classes=100
+    n_labels=70
 
     generateData(n_samples,n_classes,n_labels);
     
