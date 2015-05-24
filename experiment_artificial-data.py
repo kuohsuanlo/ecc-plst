@@ -37,8 +37,8 @@ def generateData(n_samples,n_classes,n_labels):
     X = X[order]
     Y = Y[order].astype(np.float)
     
-    np.savetxt('datasets/af-multilabel/X.data', X,fmt='%1.4e') 
-    np.savetxt('datasets/af-multilabel/Y.data', Y,fmt='%1.4e')
+    np.savetxt('datasets/af-multilabel/X.data', X,fmt='%d') 
+    np.savetxt('datasets/af-multilabel/Y.data', Y,fmt='%d')
 
 def generatePowerset(labelTuple):
     #R = []
@@ -171,7 +171,7 @@ def rakel(X,Y):
 
 
     #Generating C(n_labelk, n_labels)'s powerset R = in binary form,  -1= ith feature ==0, >=0 = ith feature ==1  
-    Y_t= []
+    Y_t= []  # Y labelspace truth table
     for labelTuple in labelTuples:
         labelTuple = sorted(labelTuple)
         R = generatePowerset(labelTuple)
@@ -187,8 +187,38 @@ def rakel(X,Y):
             Y_t_r.append( subset)
         Y_t.append(Y_t_r)
 
-    Y_t = np.array(Y_t).astype(int)
-    print Y_t
+    Y_t = np.array(Y_t).astype(int) 
+    
+    
+    #print Y_t
+    #Genarate transformed Y based on  Y_t table
+
+
+
+    for hi,sets in enumerate(Y_t):
+        transformedY = []
+        for i,row in enumerate(Y):
+            trandsfomedY_row =[]
+            for j,iset in enumerate(sets):
+                n_match =0
+                for i in iset:
+                    if i[1]== 1  and  row[i[0]]== 1:
+                        #same
+                        n_match+=1
+                    if i[1]==-1  and  row[i[0]]== 0:
+                        n_match+=1
+                
+                if n_match == n_labelk:
+                    trandsfomedY_row.append(1)
+                else:
+                    trandsfomedY_row.append(0)
+            transformedY.append(trandsfomedY_row)
+        transformedY= np.matrix(transformedY)
+        
+        filename = 'datasets/af-multilabel/Y_'+repr( hi)+'.data'
+        np.savetxt(filename, transformedY,fmt='%d')
+    
+    #Generate tranformed Y based on Y_t table
 
 '''
     for i,subsets in enumerate(R) :
