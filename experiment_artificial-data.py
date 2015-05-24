@@ -3,10 +3,14 @@ import matplotlib.pyplot as plt
 import pprint
 import random
 
+
+from sklearn.preprocessing import MultiLabelBinarizer
+from sklearn import datasets
 from sklearn.datasets import make_multilabel_classification
 from sklearn import svm
+from sklearn.multiclass import OneVsOneClassifier
 from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import SVC
+from sklearn.svm import LinearSVC
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 
 from itertools import chain, combinations
@@ -112,8 +116,8 @@ def binaryRelavance(X,Y):
         #print y_train
         #print H
         
-        #clf = OneVsRestClassifier(SVC(kernel='linear'))
-        #clf = svm.SVC(kernel='poly', gamma=10)
+         
+        #clf = OneVsRestClassifier(LinearSVC(random_state=0))
         clf  = AdaBoostClassifier()
         clf.fit(X_train, y_train)
         
@@ -141,18 +145,16 @@ def binaryRelavance(X,Y):
 
 def rakel(X,Y):
     print '==== ==== Rakel'  
-    n_labeltuples = 7
+    n_labeltuples = 15
     n_labelk = 3
 
     #Initialize data
 
     X_train = X[0:n_samples/2]
-    Y_train = Y[0:n_samples/2]
-
     X_test  = X[n_samples/2 : n_samples]
-    Y_test  = Y[n_samples/2 : n_samples]
-
-
+    
+    #Y_train = Y[0:n_samples/2]
+    #Y_test  = Y[n_samples/2 : n_samples]
 
     #Initialize the tuples' elements to (-1,-1...,-1)
     labelTuples = np.zeros((n_labeltuples,n_labelk))
@@ -190,13 +192,13 @@ def rakel(X,Y):
     Y_t = np.array(Y_t).astype(int) 
     
     
-    #print Y_t
     #Genarate transformed Y based on  Y_t table
-
-
-
+    ted_YN=[]
     for hi,sets in enumerate(Y_t):
+        print 'sets: ',sorted(labelTuples[hi])
+        
         transformedY = []
+        binarytransformedY = []
         for i,row in enumerate(Y):
             trandsfomedY_row =[]
             for j,iset in enumerate(sets):
@@ -212,26 +214,44 @@ def rakel(X,Y):
                     trandsfomedY_row.append(1)
                 else:
                     trandsfomedY_row.append(0)
-            transformedY.append(trandsfomedY_row)
+            #Binary class to numeric indicator
+            binarytransformedY.append(trandsfomedY_row)
+            for li, label in enumerate(trandsfomedY_row):
+                if label != 0:
+                    transformedY.append(li)
+            
         transformedY= np.matrix(transformedY)
         
-        filename = 'datasets/af-multilabel/Y_'+repr( hi)+'.data'
+        
+        #Generate tranformed Y_0~ Y_labeltuples based on Y_t table
+        filename = 'datasets/af-multilabel/processed/Y_'+repr( hi)+'.data'
+        bfilename= 'datasets/af-multilabel/processed/Y_'+repr( hi)+'_binary.data'
         np.savetxt(filename, transformedY,fmt='%d')
+        np.savetxt(bfilename, binarytransformedY,fmt='%d')
+        transformedY = np.loadtxt(filename)
+        ted_YN.append(transformedY)
     
-    #Generate tranformed Y based on Y_t table
 
-'''
-    for i,subsets in enumerate(R) :
-        for j,subset in enumerate(subsets):
-            j = labelTuples[0]
-            for k,label in enumerate(subset):
-                print k
-    '''
+        #Begin the train-test-election
+        for ted_Y in ted_YN:
+            ted_Y = ted_Y
+            #print ted_Y
+            Y_train = ted_Y[0:n_samples/2]
+            Y_test  = ted_Y[n_samples/2 : n_samples]
+            
+            clf  = OneVsOneClassifier(LinearSVC(random_state=0))
+            clf.fit(X_train, Y_train)
+            
+            #Getting the predicted answer
+            H= clf.predict(X_test)
+            print '---'
+            print H
+            
+            print Y_test
+            
+    #Calculating Diff
     
-         
-    #print R
-    #For each tuple, do the powerset algorithms with base learner
-
+   
          
             
 
@@ -239,7 +259,7 @@ if __name__ == '__main__':
 
     #Generating artificial data.
     #n_labels*3<=n_classes
-    n_samples = 1400
+    n_samples = 4
     n_classes=10
     n_labels=10
 
@@ -276,47 +296,5 @@ if __name__ == '__main__':
 
 
 
-'''
-H       = np.zeros((len(X_test),n_labels))
-    
-
-    #Training N=n_labels model
-    for feature in range (n_labels):
-        #print feature
-        y_train = Y_train[:,feature]
-        y_test  = Y_test[:,feature]
-
-        #print X_train
-        #print y_train
-        #print H
-        
-        #clf = OneVsRestClassifier(SVC(kernel='linear'))
-        #clf = svm.SVC(kernel='poly', gamma=10)
-        clf  = AdaBoostClassifier()
-        clf.fit(X_train, y_train)
-        
-        #Getting the predicted answer
-        H[:,feature] = clf.predict(X_test)
-
-    #print H
-    #print Y_test
-
-    #Calculating Diff
-    print '==== ==== BR'  
-    error=0
-    featrue_error=0;
-    for j in range(n_labels) :
-        feature_error=0
-        for i in range(len(Y_test)) :
-            if H[i,j]!=Y_test[i,j]:
-                error+=1
-                feature_error+=1;
-        print 'feature_error = ',feature_error / (len(X_test)*1.000)
-      
-    #print '0/1 diff = ',error 
-    print '0/1 loss = ', error / ((len(X_test)*1.000)*n_labels)
-
-
-'''
 
 
