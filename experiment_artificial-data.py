@@ -88,9 +88,9 @@ def firstFeature(X,Y):
     #print y_train
 
 
-    #clf = OneVsRestClassifier(SVC(kernel='linear'))
+    #clf = OneVsRestClassifier(LinearSVC(random_state=0))
+    clf  = OneVsOneClassifier(LinearSVC(random_state=0))
     #clf = svm.SVC(kernel='poly', gamma=10)
-    clf  =  OneVsOneClassifier(LinearSVC(random_state=0))
     clf.fit(X_train, y_train)
     
     
@@ -131,7 +131,7 @@ def binaryRelavance(X,Y):
         #print H
         
          
-        #clf = OneVsRestClassifier(LinearSVC(random_state=0))
+        
         clf  = OneVsOneClassifier(LinearSVC(random_state=0))
         #clf  = AdaBoostClassifier()
         clf.fit(X_train, y_train)
@@ -161,7 +161,7 @@ def binaryRelavance(X,Y):
 def rakel(X,Y):
     print '==== ==== Rakel'  
     n_labeltuples = 50
-    n_labelk = 6
+    n_labelk = 4
 
     #Initialize data
 
@@ -169,7 +169,7 @@ def rakel(X,Y):
     X_test  = X[n_samples/2 : n_samples]
     
     #Y_train = Y[0:n_samples/2]
-    #Y_test  = Y[n_samples/2 : n_samples]
+    Y_test  = Y[n_samples/2 : n_samples]
 
     #Initialize the tuples' elements to (-1,-1...,-1)
     labelTuples = np.zeros((n_labeltuples,n_labelk))
@@ -207,8 +207,12 @@ def rakel(X,Y):
     Y_t = np.array(Y_t).astype(int) 
     
     #Genarate transformed Y based on  Y_t table
-    box = np.zeros((len(X_test),n_labels))
+    #n_noStamps  = np.zeros((len(X_test),n_labels))
+    n_yesStamps = np.zeros((len(X_test),n_labels))
+    n_allStamps = np.zeros((len(X_test),n_labels))
+
     for hi,sets in enumerate(Y_t): # loop n_labeltuples times
+        #box = np.zeros((len(X_test),n_labels))-1
         stuple = sorted(labelTuples[hi])
         #print 'In k label sets :',stuple
         print 'Rakel labelPSet Training : ',hi,'/',len(Y_t)
@@ -251,78 +255,55 @@ def rakel(X,Y):
 
         #print ted_Y
         Y_train = ted_Y[0:n_samples/2]
-        Y_test  = ted_Y[n_samples/2 : n_samples]
         
+        #clf = OneVsRestClassifier(LinearSVC(random_state=0))
         clf  = OneVsOneClassifier(LinearSVC(random_state=0))
         clf.fit(X_train, Y_train)
         
         #Getting the predicted answer
         H= clf.predict(X_test)
         
-        
-        #Transform back to binary and put it in the election box
+        #Get one's election box
         for i_test,i in enumerate(H.astype(int)):
             s=bin(i, n_labelk)
             for i_ind,indicator in enumerate(s):
                 if indicator =='1' :
                     #Voting
-                    box[i_test,stuple[i_ind]]+=1
+                    n_yesStamps[i_test,stuple[i_ind]]+=1
+                    n_allStamps[i_test,stuple[i_ind]]+=1
+                    #box[i_test,stuple[i_ind]]=1
+                if indicator =='0':
+                    #n_noStamps[i_test,stuple[i_ind]]+=1
+                    n_allStamps[i_test,stuple[i_ind]]+=1
+                    #box[i_test,stuple[i_ind]]=0
 
-
-
-     
-            ##########################
-            #TIME TO SLEEP
-            #Compare the error with all 0 
-        '''
-            error=0;
-            for i in range(len(Y_test)):
-                if  H[i] != Y_test[i] :
-                    error+=1
-            print 'loss = ', error / ((len(X_test)*1.000))
-            
-            
-            randError=0
-            RandomH = H[:]
-            for i in range(len(Y_test)):
-                RandomH[i] = 0
-                #RandomH[i] = random.choice(range(2**n_labelk))
-            for i in range(len(Y_test)):
-                if  RandomH[i] != Y_test[i] :
-                    randError+=1
-            print 'rloss= ', randError / ((len(X_test)*1.000))
-        '''
-            
-            
-            ##########################
-            
-            #print H
-            
-            
-
+    #Start election  
+    electedH= np.zeros((len(X_test),n_labels))    
+    for i in range(len(X_test)):
+        for j in range(n_labels):
+            electedH[i][j] = round( n_yesStamps[i][j] / n_allStamps[i][j]*(1.0) )
+    
     #Open the election box
-    electedH=[]
-    for vote in box:
-        v = vote.tolist()
-        electedH.append(v.index(max(v)))
-    #print electedH
             
-            
+    
     #Calculating Diff
-    error=0;
-    for i in range(len(Y_test)):
-        if  electedH[i] != Y_test[i] :
-            error+=1
-    print '0/1 loss = ', error / ((len(X_test)*1.000))       
+    error=0
+    for j in range(n_labels) :
+        for i in range(len(Y_test)) :
+            if electedH[i,j]!=Y_test[i,j]:
+                error+=1
+                
+    print '0/1 loss = ', error / (len(Y_test)*n_labels*1.000)
+
      
 
 if __name__ == '__main__':
 
     #Generating artificial data.
     #n_labels*3<=n_classes
-    n_samples = 15000
-    n_classes=100
-    n_labels=70
+    n_samples = 10000
+    n_classes=14
+    n_labels=14
 
     generateData(n_samples,n_classes,n_labels);
     
