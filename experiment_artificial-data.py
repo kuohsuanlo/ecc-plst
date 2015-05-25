@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pprint
 import random
+import itertools as itool
 
 from operator import mul    # or mul=lambda x,y:x*y
 from fractions import Fraction
@@ -163,12 +164,13 @@ def binaryRelavance(X,Y):
       
     #print '0/1 diff = ',error 
     print '0/1 loss = ', error / ((len(X_test)*1.000)*n_labels)
-
+    #~0.108
 
 def rakel(X,Y):
     print '==== ==== Rakel'  
     n_labelk = 3
-    n_labeltuples = nCk(n_labels,n_labelk)  #C(n_labels n_labelk)
+    n_labeltuples = 8
+    n_labeltuples = min(nCk(n_labels,n_labelk),n_labeltuples)  # Rakel_o
     #Initialize data
 
     X_train = X[0:n_samples/2]
@@ -178,21 +180,17 @@ def rakel(X,Y):
     Y_test  = Y[n_samples/2 : n_samples]
 
     #Initialize the tuples' elements to (-1,-1...,-1)
-    labelTuples = np.zeros((n_labeltuples,n_labelk))
-    labelTuples = labelTuples-1
+    labelTuples = []
 
     #Construct n_labeltuples subset , each containing n_labelk elements
-    for i in range(n_labeltuples):
-        j=0    
-        while True:
-            new_id = random.choice(range(n_labels)) #0~n_labels-1
-            if new_id not in labelTuples[i]:
-                labelTuples[i][j]=(new_id)
-                j+=1
-            if j is n_labelk:
-                break
-
-
+    iters = list(itool.combinations(np.arange(n_labels),n_labelk))
+    while True:        
+        new_set = random.choice(iters) #0~n_labels-1
+        if new_set not in labelTuples:
+            labelTuples.append(new_set)
+        if len(labelTuples) == n_labeltuples:
+            break 
+    
     #Generating sorted k features tuples from C(n_labelk, n_labels)'s powerset R = in binary form,  -1= ith feature ==0, >=0 = ith feature ==1  
     Y_t= []  # Y labelspace truth table
     for labelTuple in labelTuples:
@@ -287,7 +285,10 @@ def rakel(X,Y):
     electedH= np.zeros((len(X_test),n_labels))    
     for i in range(len(X_test)):
         for j in range(n_labels):
-            electedH[i][j] = round( n_yesStamps[i][j] / n_allStamps[i][j]*(1.0) )
+            if n_allStamps[i][j]==0:
+                electedH[i][j]=0
+            else:
+                electedH[i][j] = round( n_yesStamps[i][j] / n_allStamps[i][j]*(1.0) )
     
     #Open the election box
             
@@ -307,7 +308,7 @@ if __name__ == '__main__':
 
     #Generating artificial data.
     #n_labels*3<=n_classes
-    n_samples = 10000
+    n_samples = 1500
     n_classes=14
     n_labels=14
 
