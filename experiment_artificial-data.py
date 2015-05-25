@@ -3,6 +3,9 @@ import matplotlib.pyplot as plt
 import pprint
 import random
 import itertools as itool
+import sys
+
+from time import sleep
 
 from operator import mul    # or mul=lambda x,y:x*y
 from fractions import Fraction
@@ -97,7 +100,7 @@ def firstFeature(X,Y):
 
 
     #clf = OneVsRestClassifier(LinearSVC(random_state=0))
-    clf  = OneVsOneClassifier(LinearSVC(random_state=0))
+    #clf  = OneVsOneClassifier(LinearSVC(random_state=0))
     #clf = svm.SVC(kernel='poly', gamma=10)
     clf.fit(X_train, y_train)
     
@@ -127,10 +130,18 @@ def binaryRelavance(X,Y):
 
     H       = np.zeros((len(X_test),n_labels))
 
-    #Training N=n_labels model
+    print 'Total : ',n_labels,' labels'
+    #Training N=n_labels modeld
     for feature in range (n_labels):
+        #Progress bar
+        sys.stdout.write('\r')
+        i = int(round((20*(0.01+feature))/(n_labels)))
+        sys.stdout.write("[%-20s] %d%%" % ('='*i, 5*i))
+        sys.stdout.flush()
+
+
         #print feature
-        print 'BinaryRalevance Training : ',feature,'/',(n_labels)
+        #print 'BinaryRalevance Training : ',feature,'/',(n_labels)
         y_train = Y_train[:,feature]
         y_test  = Y_test[:,feature]
 
@@ -140,7 +151,7 @@ def binaryRelavance(X,Y):
         
          
         
-        clf  = OneVsOneClassifier(LinearSVC(random_state=0))
+        #clf  = OneVsOneClassifier(LinearSVC(random_state=0))
         #clf  = AdaBoostClassifier()
         clf.fit(X_train, y_train)
         
@@ -163,13 +174,13 @@ def binaryRelavance(X,Y):
         #print 'feature_error = ',feature_error / (len(X_test)*1.000)
       
     #print '0/1 diff = ',error 
-    print '0/1 loss = ', error / ((len(X_test)*1.000)*n_labels)
+    print '\n0/1 loss = ', error / ((len(X_test)*1.000)*n_labels)
     #~0.108
 
 def rakel(X,Y):
     print '==== ==== Rakel'  
-    n_labelk = 3
-    n_labeltuples = 8
+    n_labelk = 4
+    n_labeltuples = 100
     n_labeltuples = min(nCk(n_labels,n_labelk),n_labeltuples)  # Rakel_o
     #Initialize data
 
@@ -215,11 +226,19 @@ def rakel(X,Y):
     n_yesStamps = np.zeros((len(X_test),n_labels))
     n_allStamps = np.zeros((len(X_test),n_labels))
 
+
+    print 'Total : ',n_labeltuples,' hypothesis'
     for hi,sets in enumerate(Y_t): # loop n_labeltuples times
+        #Progress bar
+        sys.stdout.write('\r')
+        i = int(round((20*(0.01+hi))/(len(Y_t))))
+        sys.stdout.write("[%-20s] %d%%" % ('='*i, 5*i))
+        sys.stdout.flush()
+       
         #box = np.zeros((len(X_test),n_labels))-1
         stuple = sorted(labelTuples[hi])
         #print 'In k label sets :',stuple
-        print 'Rakel labelPSet Training : ',hi,'/',len(Y_t)
+        #print 'Rakel labelPSet Training : ',hi,'/',len(Y_t)
         ted_YN=[]
         bted_YN=[]
         transformedY = []
@@ -261,7 +280,7 @@ def rakel(X,Y):
         Y_train = ted_Y[0:n_samples/2]
         
         #clf = OneVsRestClassifier(LinearSVC(random_state=0))
-        clf  = OneVsOneClassifier(LinearSVC(random_state=0))
+        #clf  = OneVsOneClassifier(LinearSVC(random_state=0))
         clf.fit(X_train, Y_train)
         
         #Getting the predicted answer
@@ -300,7 +319,7 @@ def rakel(X,Y):
             if electedH[i,j]!=Y_test[i,j]:
                 error+=1
                 
-    print '0/1 loss = ', error / (len(Y_test)*n_labels*1.000)
+    print '\n0/1 loss = ', error / (len(Y_test)*n_labels*1.000)
 
      
 
@@ -308,8 +327,8 @@ if __name__ == '__main__':
 
     #Generating artificial data.
     #n_labels*3<=n_classes
-    n_samples = 1500
-    n_classes=14
+    n_samples = 5000
+    n_classes=40
     n_labels=14
 
     generateData(n_samples,n_classes,n_labels);
@@ -329,7 +348,8 @@ if __name__ == '__main__':
     #print Y
     #print H
 
-
+#   Select Base learner
+    clf  = OneVsOneClassifier(LinearSVC(random_state=0,max_iter=5000))
 
 #   First try. Focus on the first feature
     firstFeature(X,Y)
