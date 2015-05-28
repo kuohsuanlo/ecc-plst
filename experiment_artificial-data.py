@@ -1,3 +1,5 @@
+
+
 import numpy as np
 import matplotlib.pyplot as plt
 import pprint
@@ -179,7 +181,7 @@ def binaryRelavance(X,Y):
 
 def rakel(X,Y):
     print '==== ==== Rakel'  
-    n_labelk = 4
+    n_labelk = 3
     n_labeltuples = 100
     n_labeltuples = min(nCk(n_labels,n_labelk),n_labeltuples)  # Rakel_o
     #Initialize data
@@ -270,7 +272,7 @@ def rakel(X,Y):
         
         
         #Generate tranformed Y_0~ Y_labeltuples based on Y_t table
-        filename = 'datasets/af-multilabel/processed/Y_'+repr( hi)+'.data'
+        filename = 'datasets/af-multilabel/processed/Rakel/Y_'+repr( hi)+'.data'
         np.savetxt(filename, transformedY,fmt='%d')
         ted_Y = np.loadtxt(filename)
         
@@ -310,7 +312,6 @@ def rakel(X,Y):
                 electedH[i][j] = round( n_yesStamps[i][j] / n_allStamps[i][j]*(1.0) )
     
     #Open the election box
-            
     
     #Calculating Diff
     error=0
@@ -321,15 +322,113 @@ def rakel(X,Y):
                 
     print '\n0/1 loss = ', error / (len(Y_test)*n_labels*1.000)
 
+def labelPowerset(X,Y):
+    print '==== ==== LabelPowerset'  
+    #Initialize data
+
+    X_train = X[0:n_samples/2]
+    X_test  = X[n_samples/2 : n_samples]
+    
+    Y_train = Y[0:n_samples/2]
+    Y_test  = Y[n_samples/2 : n_samples]
+
+    #Initialize the tuples' elements to (-1,-1...,-1)
+    labelTuples = []
+
+    #Construct n_labeltuples subset , each containing n_labelk elements
+    labelTuples.append(np.arange(n_labels))
+    
+    
+    Y_t= []  # Y labelspace truth table
+    for labelTuple in labelTuples:
+        labelTuple = sorted(labelTuple)
+        #print labelTuple
+        R = generatePowerset(labelTuple,n_labels)
+        Y_t_r = []
+        for subset in R:
+            tmp = labelTuple[:]
+            for i,label in enumerate(labelTuple) :
+                if label in subset:
+                    tmp[i] = tuple([label, 1])
+                else:
+                    tmp[i] = tuple([label,-1])
+            subset = tmp
+            Y_t_r.append( subset)
+        Y_t.append(Y_t_r)
+    Y_t = np.array(Y_t).astype(int)[0]
+   
+    #Genarate transformed Y based on  Y_t table
+
+    ted_YN=[]
+    transformedY = []
+    binarytransformedY = []
+    
+       
+    for row in Y:
+        trandsfomedY_row =[]
+        for iset in Y_t:
+            #print iset
+            #print '--------'
+            n_match =0
+            for i in iset:
+                if i[1]==  1  and  row[i[0]]== 1:
+                    #same
+                    n_match+=1
+                if i[1]== -1  and  row[i[0]]== 0:
+                    n_match+=1
+            if n_match == n_labels:
+                trandsfomedY_row.append(1)
+            else:
+                trandsfomedY_row.append(0)
+        #Binary class to numeric indicator
+        binarytransformedY.append(trandsfomedY_row)
+        for li, label in enumerate(trandsfomedY_row):
+            if label != 0:
+                transformedY.append(li)
+        
+    transformedY= np.matrix(transformedY)
      
+    filename = 'datasets/af-multilabel/processed/LabelPowerSet/Y_LP.data'
+    np.savetxt(filename, transformedY,fmt='%d')
+    ted_Y = np.loadtxt(filename)
+    
+
+    #print ted_Y
+    Y_train = ted_Y[0:n_samples/2]
+    
+    #clf = OneVsRestClassifier(LinearSVC(random_state=0))
+    #clf  = OneVsOneClassifier(LinearSVC(random_state=0))
+    clf.fit(X_train, Y_train)
+    
+    #Getting the predicted answer
+    H= clf.predict(X_test)
+   
+
+    #Transform to binary indicator
+    H_in_binary = np.zeros((n_samples/2,n_labels))
+    for i_test,i in enumerate(H.astype(int)):
+        s=bin(i, n_labels)
+        for i_ind,indicator in enumerate(s):
+            if indicator =='1' :
+                H_in_binary[i_test,i_ind]+=1
+               
+    #Calculating Diff
+    error=0
+    for j in range(n_labels) :
+        for i in range(len(Y_test)) :
+            if H_in_binary[i,j]!=Y_test[i,j]:
+                error+=1
+
+    print '\n0/1 loss = ', error / (len(Y_test)*n_labels*1.000)
+
 
 if __name__ == '__main__':
 
     #Generating artificial data.
     #n_labels*3<=n_classes
-    n_samples = 5000
-    n_classes=40
-    n_labels=14
+    n_samples = 10000
+    n_classes=24
+    n_labels=6
 
     generateData(n_samples,n_classes,n_labels);
     
@@ -362,8 +461,5 @@ if __name__ == '__main__':
 #   RAKel
     rakel(X,Y)
 
-
-
-
-
-
+#   LabelPowerset
+    labelPowerset(X,Y)
