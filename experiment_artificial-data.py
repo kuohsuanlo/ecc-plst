@@ -119,7 +119,7 @@ def firstFeature(X,Y):
     #print H
     #print y_test  
  
-    print 'error = ',error / (len(X_test)*1.000)
+    print 'Hamming error = ',error / (len(X_test)*1.000)
     #Result ~= 0.2
 def binaryRelavance(X,Y):
     print '==== ==== BR'  
@@ -163,7 +163,7 @@ def binaryRelavance(X,Y):
     #print H
     #print Y_test
 
-    #Calculating Diff
+    #Calculating Hamming Loss
 
     error=0
     featrue_error=0;
@@ -173,16 +173,22 @@ def binaryRelavance(X,Y):
             if H[i,j]!=Y_test[i,j]:
                 error+=1
                 feature_error+=1;
-        #print 'feature_error = ',feature_error / (len(X_test)*1.000)
-      
-    #print '0/1 diff = ',error 
-    print '\n0/1 loss = ', error / ((len(X_test)*1.000)*n_labels)
-    #~0.108
+    print '\nHamming loss = ', error / ((len(X_test)*1.000)*n_labels)
+    
+    
+    #Calculating 0/1 Loss
+    error=0
+    for i in range(len(Y_test)) :
+        for j in range(n_labels) :
+            if H[i,j]!=Y_test[i,j]:
+                error+=1
+                break
+    print '0/1 loss = ', error / ((len(X_test)*1.000))
 
 def rakel(X,Y):
     print '==== ==== Rakel'  
-    n_labelk = 3
-    n_labeltuples = 100
+    n_labelk = 4
+    n_labeltuples = 120
     n_labeltuples = min(nCk(n_labels,n_labelk),n_labeltuples)  # Rakel_o
     #Initialize data
 
@@ -313,14 +319,23 @@ def rakel(X,Y):
     
     #Open the election box
     
-    #Calculating Diff
+    #Calculating Hamming
     error=0
-    for j in range(n_labels) :
-        for i in range(len(Y_test)) :
+    for i in range(len(Y_test)) :
+        for j in range(n_labels) :
             if electedH[i,j]!=Y_test[i,j]:
                 error+=1
                 
-    print '\n0/1 loss = ', error / (len(Y_test)*n_labels*1.000)
+    print '\nHamming loss = ', error / (len(Y_test)*n_labels*1.000)
+    
+    #Calculating 0/1 Loss
+    error=0
+    for i in range(len(Y_test)) :
+        for j in range(n_labels) :
+            if electedH[i,j]!=Y_test[i,j]:
+                error+=1
+                break
+    print '0/1 loss = ', error / ((len(X_test)*1.000))
 
 def labelPowerset(X,Y):
     print '==== ==== LabelPowerset'  
@@ -419,7 +434,17 @@ def labelPowerset(X,Y):
             if H_in_binary[i,j]!=Y_test[i,j]:
                 error+=1
 
-    print '\n0/1 loss = ', error / (len(Y_test)*n_labels*1.000)
+    print '\nHamming loss = ', error / (len(Y_test)*n_labels*1.000)
+
+
+    #Calculating 0/1 Loss
+    error=0
+    for j in range(n_labels) :
+        for i in range(len(Y_test)) :
+            if H_in_binary[i,j]!=Y_test[i,j]:
+                error+=1
+                break
+    print '0/1 loss = ', error / ((len(X_test)*1.000))
 
 
 if __name__ == '__main__':
@@ -427,8 +452,8 @@ if __name__ == '__main__':
     #Generating artificial data.
     #n_labels*3<=n_classes
     n_samples = 10000
-    n_classes=24
-    n_labels=6
+    n_classes=60
+    n_labels=14
 
     generateData(n_samples,n_classes,n_labels);
     
